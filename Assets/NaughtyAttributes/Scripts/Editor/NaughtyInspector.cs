@@ -145,9 +145,39 @@ namespace NaughtyAttributes.Editor
                         EditorGUILayout.GetControlRect(false), HorizontalLineAttribute.DefaultHeight, HorizontalLineAttribute.DefaultColor.GetColor());
                 }
 
-                foreach (var field in _nonSerializedFields)
+                foreach (var field in GetNonGroupedProperties(_nonSerializedFields))
                 {
                     NaughtyEditorGUI.NonSerializedField_Layout(serializedObject.targetObject, field);
+                }
+
+                // Draw grouped non-serialized fields
+                foreach (IGrouping<string, FieldInfo> group in GetGroupedProperties(_nonSerializedFields))
+                {
+                    NaughtyEditorGUI.BeginBoxGroup_Layout(group.Key);
+                    foreach (var field in group)
+                    {
+                        NaughtyEditorGUI.NonSerializedField_Layout(serializedObject.targetObject, field: field);
+                    }
+
+                    NaughtyEditorGUI.EndBoxGroup_Layout();
+                }
+
+                // Draw foldout non-serialized fields
+                foreach (IGrouping<string, FieldInfo> group in GetFoldoutProperties(_nonSerializedFields))
+                {
+                    if (!_foldouts.ContainsKey(group.Key))
+                    {
+                        _foldouts[group.Key] = new SavedBool($"{target.GetInstanceID()}.{group.Key}", false);
+                    }
+
+                    _foldouts[group.Key].Value = EditorGUILayout.Foldout(_foldouts[group.Key].Value, group.Key, true);
+                    if (_foldouts[group.Key].Value)
+                    {
+                        foreach (var field in group)
+                        {
+                            NaughtyEditorGUI.NonSerializedField_Layout(serializedObject.targetObject, field: field);
+                        }
+                    }
                 }
             }
         }
@@ -195,11 +225,23 @@ namespace NaughtyAttributes.Editor
             return properties.Where(p => PropertyUtility.GetAttribute<IGroupAttribute>(p) == null);
         }
 
+        private static IEnumerable<FieldInfo> GetNonGroupedProperties(IEnumerable<FieldInfo> fieldInfos)
+        {
+            return fieldInfos.Where(f => PropertyUtility.GetAttribute<IGroupAttribute>(f) == null);
+        }
+
         private static IEnumerable<IGrouping<string, SerializedProperty>> GetGroupedProperties(IEnumerable<SerializedProperty> properties)
         {
             return properties
                 .Where(p => PropertyUtility.GetAttribute<BoxGroupAttribute>(p) != null)
                 .GroupBy(p => PropertyUtility.GetAttribute<BoxGroupAttribute>(p).Name);
+        }
+
+        private static IEnumerable<IGrouping<string, FieldInfo>> GetGroupedProperties(IEnumerable<FieldInfo> properties)
+        {
+            return properties
+                .Where(f => PropertyUtility.GetAttribute<BoxGroupAttribute>(f) != null)
+                .GroupBy(f => PropertyUtility.GetAttribute<BoxGroupAttribute>(f).Name);
         }
 
         private static IEnumerable<IGrouping<string, SerializedProperty>> GetFoldoutProperties(IEnumerable<SerializedProperty> properties)
@@ -208,6 +250,13 @@ namespace NaughtyAttributes.Editor
                 .Where(p => PropertyUtility.GetAttribute<FoldoutAttribute>(p) != null)
                 .GroupBy(p => PropertyUtility.GetAttribute<FoldoutAttribute>(p).Name);
         }
+
+        private static IEnumerable<IGrouping<string, FieldInfo>> GetFoldoutProperties(IEnumerable<FieldInfo> properties)
+        {
+            return properties
+                .Where(f => PropertyUtility.GetAttribute<FoldoutAttribute>(f) != null)
+                .GroupBy(f => PropertyUtility.GetAttribute<FoldoutAttribute>(f).Name);
+        }  
 
         private static GUIStyle GetHeaderGUIStyle()
         {
