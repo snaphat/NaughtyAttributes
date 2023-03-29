@@ -223,7 +223,7 @@ namespace NaughtyAttributes.Editor
                 string warning = string.Format("{0} is null. {1} doesn't support reference types with null value", ObjectNames.NicifyVariableName(field.Name), typeof(ShowNonSerializedFieldAttribute).Name);
                 HelpBox_Layout(warning, MessageType.Warning, context: target);
             }
-            else if (!Field_Layout(value, ObjectNames.NicifyVariableName(field.Name)))
+            else if (!Field_Layout(value, ObjectNames.NicifyVariableName(field.Name), target, field))
             {
                 string warning = string.Format("{0} doesn't support {1} types", typeof(ShowNonSerializedFieldAttribute).Name, field.FieldType.Name);
                 HelpBox_Layout(warning, MessageType.Warning, context: target);
@@ -256,100 +256,166 @@ namespace NaughtyAttributes.Editor
             }
         }
 
-        public static bool Field_Layout(object value, string label)
+        public static bool Field_Layout(object value, string label, UnityEngine.Object target = null, FieldInfo field = null)
         {
-            using (new EditorGUI.DisabledScope(disabled: true))
+            using (new EditorGUI.DisabledScope(disabled: target == null || field == null))
             {
                 bool isDrawn = true;
                 Type valueType = value.GetType();
 
                 if (valueType == typeof(bool))
                 {
-                    EditorGUILayout.Toggle(label, (bool)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.Toggle(label, (bool)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType == typeof(short))
                 {
-                    EditorGUILayout.IntField(label, (short)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.IntField(label, (short)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType == typeof(ushort))
                 {
-                    EditorGUILayout.IntField(label, (ushort)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.IntField(label, (ushort)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType == typeof(int))
                 {
-                    EditorGUILayout.IntField(label, (int)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.IntField(label, (int)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType == typeof(uint))
                 {
-                    EditorGUILayout.LongField(label, (uint)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.LongField(label, (uint)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType == typeof(long))
                 {
-                    EditorGUILayout.LongField(label, (long)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.LongField(label, (long)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType == typeof(ulong))
                 {
-                    EditorGUILayout.TextField(label, ((ulong)value).ToString());
+                    EditorGUI.BeginChangeCheck();
+                    var ret = Convert.ToUInt64(EditorGUILayout.TextField(label, ((ulong)value).ToString()));
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType == typeof(float))
                 {
-                    EditorGUILayout.FloatField(label, (float)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.FloatField(label, (float)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType == typeof(double))
                 {
-                    EditorGUILayout.DoubleField(label, (double)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.DoubleField(label, (double)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType == typeof(string))
                 {
-                    EditorGUILayout.TextField(label, (string)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.TextField(label, (string)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType == typeof(Vector2))
                 {
-                    EditorGUILayout.Vector2Field(label, (Vector2)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.Vector2Field(label, (Vector2)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType == typeof(Vector3))
                 {
-                    EditorGUILayout.Vector3Field(label, (Vector3)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.Vector3Field(label, (Vector3)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType == typeof(Vector4))
                 {
-                    EditorGUILayout.Vector4Field(label, (Vector4)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.Vector4Field(label, (Vector4)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType == typeof(Vector2Int))
                 {
-                    EditorGUILayout.Vector2IntField(label, (Vector2Int)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.Vector2IntField(label, (Vector2Int)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType == typeof(Vector3Int))
                 {
-                    EditorGUILayout.Vector3IntField(label, (Vector3Int)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.Vector3IntField(label, (Vector3Int)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType == typeof(Color))
                 {
-                    EditorGUILayout.ColorField(label, (Color)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.ColorField(label, (Color)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType == typeof(Bounds))
                 {
-                    EditorGUILayout.BoundsField(label, (Bounds)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.BoundsField(label, (Bounds)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType == typeof(Rect))
                 {
-                    EditorGUILayout.RectField(label, (Rect)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.RectField(label, (Rect)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType == typeof(RectInt))
                 {
-                    EditorGUILayout.RectIntField(label, (RectInt)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.RectIntField(label, (RectInt)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (typeof(UnityEngine.Object).IsAssignableFrom(valueType))
                 {
-                    EditorGUILayout.ObjectField(label, (UnityEngine.Object)value, valueType, true);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.ObjectField(label, (UnityEngine.Object)value, valueType, true);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType.BaseType == typeof(Enum))
                 {
-                    EditorGUILayout.EnumPopup(label, (Enum)value);
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.EnumPopup(label, (Enum)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else if (valueType.BaseType == typeof(System.Reflection.TypeInfo))
                 {
-                    EditorGUILayout.TextField(label, value.ToString());
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.TextField(label, value.ToString());
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, ret);
                 }
                 else
                 {
