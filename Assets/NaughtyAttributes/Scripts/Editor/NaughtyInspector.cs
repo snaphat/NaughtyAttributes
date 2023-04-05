@@ -123,10 +123,12 @@ namespace NaughtyAttributes.Editor
                 _foldouts[group.Key].Value = EditorGUILayout.Foldout(_foldouts[group.Key].Value, group.Key, true);
                 if (_foldouts[group.Key].Value)
                 {
+                    EditorGUI.indentLevel++;
                     foreach (var property in visibleProperties)
                     {
                         NaughtyEditorGUI.PropertyField_Layout(property, true);
                     }
+                    EditorGUI.indentLevel--;
                 }
             }
 
@@ -173,10 +175,12 @@ namespace NaughtyAttributes.Editor
                     _foldouts[group.Key].Value = EditorGUILayout.Foldout(_foldouts[group.Key].Value, group.Key, true);
                     if (_foldouts[group.Key].Value)
                     {
+                        EditorGUI.indentLevel++;
                         foreach (var field in group)
                         {
                             NaughtyEditorGUI.NonSerializedField_Layout(serializedObject.targetObject, field: field);
                         }
+                        EditorGUI.indentLevel--;
                     }
                 }
             }
