@@ -396,6 +396,13 @@ namespace NaughtyAttributes.Editor
                     if (EditorGUI.EndChangeCheck() && target != null && field != null)
                         field.SetValue(target, ret);
                 }
+                else if (valueType == typeof(LayerMask))
+                {
+                    EditorGUI.BeginChangeCheck();
+                    var ret = EditorGUILayout.LayerField(label, (LayerMask)value);
+                    if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                        field.SetValue(target, (LayerMask)ret);
+                }
                 else if (typeof(UnityEngine.Object).IsAssignableFrom(valueType))
                 {
                     EditorGUI.BeginChangeCheck();
