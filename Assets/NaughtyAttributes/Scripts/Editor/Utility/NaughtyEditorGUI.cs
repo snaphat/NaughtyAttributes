@@ -5,6 +5,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEditor.Experimental.SceneManagement;
 using UnityEditor.SceneManagement;
+using UnityEditorInternal;
 using UnityEngine;
 
 namespace NaughtyAttributes.Editor
@@ -399,7 +400,7 @@ namespace NaughtyAttributes.Editor
                 else if (valueType == typeof(LayerMask))
                 {
                     EditorGUI.BeginChangeCheck();
-                    var ret = EditorGUILayout.LayerField(label, (LayerMask)value);
+                    var ret = EditorGUILayout.MaskField(label, InternalEditorUtility.LayerMaskToConcatenatedLayersMask((LayerMask)value), InternalEditorUtility.layers);
                     if (EditorGUI.EndChangeCheck() && target != null && field != null)
                         field.SetValue(target, (LayerMask)ret);
                 }
