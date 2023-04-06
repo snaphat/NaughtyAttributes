@@ -268,7 +268,7 @@ namespace NaughtyAttributes.Editor
 
         public static bool Field_Layout(object value, string label, object target = null, FieldInfo field = null)
         {
-            using (new EditorGUI.DisabledScope(disabled: target == null || field == null))
+            using (new EditorGUI.DisabledScope(disabled: target == null || field == null || field.IsInitOnly || field.IsLiteral))
             {
                 bool isDrawn = true;
                 Type valueType = value.GetType();
