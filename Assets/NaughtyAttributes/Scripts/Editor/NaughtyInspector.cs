@@ -135,6 +135,40 @@ namespace NaughtyAttributes.Editor
             serializedObject.ApplyModifiedProperties();
         }
 
+        protected void DrawNonSerializedStructOrField(object target, FieldInfo field)
+        {
+            if (field.FieldType.IsValueType && !field.FieldType.IsPrimitive && field.FieldType != typeof(LayerMask))
+            {
+                object subtarget = field.GetValue(target);
+
+                if (!_foldouts.ContainsKey(field.Name))
+                    _foldouts[field.Name] = new SavedBool($"{target.GetHashCode()}.{field.Name}", false);
+
+                _foldouts[field.Name].Value = EditorGUILayout.Foldout(_foldouts[field.Name].Value, ObjectNames.NicifyVariableName(field.Name), true);
+                if (_foldouts[field.Name].Value)
+                {
+                    EditorGUI.indentLevel++;
+                    foreach (var subfield in field.FieldType.GetFields())
+                    {
+                        if (subfield.FieldType.IsValueType && !subfield.FieldType.IsPrimitive && subfield.FieldType != typeof(LayerMask))
+                            DrawNonSerializedStructOrField(subtarget, subfield);
+                        else
+                        {
+                            EditorGUI.BeginChangeCheck();
+                            NaughtyEditorGUI.NonSerializedField_Layout(subtarget, subfield);
+                            if (EditorGUI.EndChangeCheck() && target != null && field != null)
+                                field.SetValue(target, subtarget);
+                        }
+                    }
+                    EditorGUI.indentLevel--;
+                }
+            }
+            else if (target is Object targetObject)
+                NaughtyEditorGUI.NonSerializedField_Layout(targetObject, field);
+            else
+                NaughtyEditorGUI.NonSerializedField_Layout(target, field);
+        }
+
         protected void DrawNonSerializedFields(bool drawHeader = false)
         {
             if (_nonSerializedFields.Any())
@@ -149,7 +183,7 @@ namespace NaughtyAttributes.Editor
 
                 foreach (var field in GetNonGroupedProperties(_nonSerializedFields))
                 {
-                    NaughtyEditorGUI.NonSerializedField_Layout(serializedObject.targetObject, field);
+                    DrawNonSerializedStructOrField(serializedObject.targetObject, field);
                 }
 
                 // Draw grouped non-serialized fields
@@ -158,7 +192,7 @@ namespace NaughtyAttributes.Editor
                     NaughtyEditorGUI.BeginBoxGroup_Layout(group.Key);
                     foreach (var field in group)
                     {
-                        NaughtyEditorGUI.NonSerializedField_Layout(serializedObject.targetObject, field: field);
+                        DrawNonSerializedStructOrField(serializedObject.targetObject, field);
                     }
 
                     NaughtyEditorGUI.EndBoxGroup_Layout();
@@ -178,7 +212,7 @@ namespace NaughtyAttributes.Editor
                         EditorGUI.indentLevel++;
                         foreach (var field in group)
                         {
-                            NaughtyEditorGUI.NonSerializedField_Layout(serializedObject.targetObject, field: field);
+                            DrawNonSerializedStructOrField(serializedObject.targetObject, field);
                         }
                         EditorGUI.indentLevel--;
                     }

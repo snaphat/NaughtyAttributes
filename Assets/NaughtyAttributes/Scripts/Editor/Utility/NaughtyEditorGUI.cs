@@ -231,6 +231,15 @@ namespace NaughtyAttributes.Editor
             }
         }
 
+        public static void NonSerializedField_Layout(object target, FieldInfo field)
+        {
+            object value = field.GetValue(target);
+
+            if (value == null) return;
+
+            Field_Layout(value, ObjectNames.NicifyVariableName(field.Name), target, field);
+        }
+
         public static void HorizontalLine(Rect rect, float height, Color color)
         {
             rect.height = height;
@@ -257,7 +266,7 @@ namespace NaughtyAttributes.Editor
             }
         }
 
-        public static bool Field_Layout(object value, string label, UnityEngine.Object target = null, FieldInfo field = null)
+        public static bool Field_Layout(object value, string label, object target = null, FieldInfo field = null)
         {
             using (new EditorGUI.DisabledScope(disabled: target == null || field == null))
             {
