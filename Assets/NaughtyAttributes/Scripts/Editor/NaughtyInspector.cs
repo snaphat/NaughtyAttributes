@@ -137,7 +137,7 @@ namespace NaughtyAttributes.Editor
 
         protected void DrawNonSerializedStructOrField(object target, FieldInfo field)
         {
-            if (field.FieldType.IsValueType && !field.FieldType.IsPrimitive && field.FieldType != typeof(LayerMask))
+            if (field.FieldType.IsValueType && !field.FieldType.IsPrimitive && !field.FieldType.IsEnum && field.FieldType != typeof(LayerMask))
             {
                 object subtarget = field.GetValue(target);
 
@@ -150,7 +150,7 @@ namespace NaughtyAttributes.Editor
                     EditorGUI.indentLevel++;
                     foreach (var subfield in field.FieldType.GetFields())
                     {
-                        if (subfield.FieldType.IsValueType && !subfield.FieldType.IsPrimitive && subfield.FieldType != typeof(LayerMask))
+                        if (subfield.FieldType.IsValueType && !subfield.FieldType.IsPrimitive && !subfield.FieldType.IsEnum && subfield.FieldType != typeof(LayerMask))
                             DrawNonSerializedStructOrField(subtarget, subfield);
                         else
                         {
