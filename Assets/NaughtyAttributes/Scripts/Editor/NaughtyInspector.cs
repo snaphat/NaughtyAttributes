@@ -15,9 +15,17 @@ namespace NaughtyAttributes.Editor
         private IEnumerable<PropertyInfo> _nativeProperties;
         private IEnumerable<MethodInfo> _methods;
         private Dictionary<string, SavedBool> _foldouts = new Dictionary<string, SavedBool>();
+        Component componentWithDefaultValues; // Component to pull non-serialized default values from.
 
         protected virtual void OnEnable()
         {
+            if (!Application.isPlaying)
+            {
+                // Create a temporary game object and component to pull non-serialized default values from.
+                var temporaryGameObject = new GameObject() { hideFlags = HideFlags.HideAndDontSave };
+                componentWithDefaultValues = temporaryGameObject.AddComponent(target.GetType());
+            }
+
             _nonSerializedFields = ReflectionUtility.GetAllFields(
                 target, f => f.GetCustomAttributes(typeof(ShowNonSerializedFieldAttribute), true).Length > 0);
 
@@ -30,6 +38,12 @@ namespace NaughtyAttributes.Editor
 
         protected virtual void OnDisable()
         {
+            // Destroy temporary game object with non-serialized default values on disable
+            if (componentWithDefaultValues != null)
+            {
+                DestroyImmediate(componentWithDefaultValues.gameObject);
+                componentWithDefaultValues = null;
+            }
             ReorderableListPropertyDrawer.Instance.ClearCache();
         }
 
@@ -50,6 +64,13 @@ namespace NaughtyAttributes.Editor
             DrawNonSerializedFields();
             DrawNativeProperties();
             DrawButtons();
+
+            // Destroy temporary game object with non-serialized default values after first update of inspector gui
+            if (componentWithDefaultValues != null)
+            {
+                DestroyImmediate(componentWithDefaultValues.gameObject);
+                componentWithDefaultValues = null;
+            }
         }
 
         protected void GetSerializedProperties(ref List<SerializedProperty> outSerializedProperties)
@@ -137,6 +158,10 @@ namespace NaughtyAttributes.Editor
 
         protected void DrawNonSerializedStructOrField(object target, FieldInfo field)
         {
+            // Set defaults for non-serialized component fields
+            if (!Application.isPlaying && componentWithDefaultValues && !field.IsLiteral && target.GetType().IsSubclassOf(typeof(Component)))
+                field.SetValue(target, field.GetValue(componentWithDefaultValues));
+
             if (field.FieldType.IsValueType && !field.FieldType.IsPrimitive && !field.FieldType.IsEnum && field.FieldType != typeof(LayerMask))
             {
                 object subtarget = field.GetValue(target);
