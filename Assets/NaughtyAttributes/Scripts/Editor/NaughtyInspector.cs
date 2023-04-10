@@ -19,7 +19,7 @@ namespace NaughtyAttributes.Editor
 
         protected virtual void OnEnable()
         {
-            if (!Application.isPlaying)
+            if (!Application.isPlaying && target.GetType().IsSubclassOf(typeof(MonoBehaviour)))
             {
                 // Create a temporary game object and component to pull non-serialized default values from.
                 var temporaryGameObject = new GameObject() { hideFlags = HideFlags.HideAndDontSave };
