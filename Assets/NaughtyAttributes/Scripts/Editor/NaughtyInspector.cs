@@ -15,15 +15,23 @@ namespace NaughtyAttributes.Editor
         private IEnumerable<PropertyInfo> _nativeProperties;
         private IEnumerable<MethodInfo> _methods;
         private Dictionary<string, SavedBool> _foldouts = new Dictionary<string, SavedBool>();
-        Component componentWithDefaultValues; // Component to pull non-serialized default values from.
+        Object objectWithDefaultValues; // Object to pull non-serialized default values from.
 
         protected virtual void OnEnable()
         {
-            if (!Application.isPlaying && target.GetType().IsSubclassOf(typeof(MonoBehaviour)))
+            if (!Application.isPlaying)
             {
-                // Create a temporary game object and component to pull non-serialized default values from.
-                var temporaryGameObject = new GameObject() { hideFlags = HideFlags.HideAndDontSave };
-                componentWithDefaultValues = temporaryGameObject.AddComponent(target.GetType());
+                if (target.GetType().IsSubclassOf(typeof(MonoBehaviour)))
+                {
+                    // Create a temporary game object and component to pull non-serialized default values from.
+                    var temporaryGameObject = new GameObject() { hideFlags = HideFlags.HideAndDontSave };
+                    objectWithDefaultValues = temporaryGameObject.AddComponent(target.GetType());
+                }
+                else if (target.GetType().IsSubclassOf(typeof(ScriptableObject)))
+                {
+                    // Create temporary ScriptableObject
+                    objectWithDefaultValues = CreateInstance(target.GetType());
+                }
             }
 
             _nonSerializedFields = ReflectionUtility.GetAllFields(
@@ -39,10 +47,12 @@ namespace NaughtyAttributes.Editor
         protected virtual void OnDisable()
         {
             // Destroy temporary game object with non-serialized default values on disable
-            if (componentWithDefaultValues != null)
+            if (objectWithDefaultValues != null)
             {
-                DestroyImmediate(componentWithDefaultValues.gameObject);
-                componentWithDefaultValues = null;
+                if (objectWithDefaultValues is Component component)
+                    DestroyImmediate(component.gameObject);
+                DestroyImmediate(objectWithDefaultValues);
+                objectWithDefaultValues = null;
             }
             ReorderableListPropertyDrawer.Instance.ClearCache();
         }
@@ -66,10 +76,12 @@ namespace NaughtyAttributes.Editor
             DrawButtons();
 
             // Destroy temporary game object with non-serialized default values after first update of inspector gui
-            if (componentWithDefaultValues != null)
+            if (objectWithDefaultValues != null)
             {
-                DestroyImmediate(componentWithDefaultValues.gameObject);
-                componentWithDefaultValues = null;
+                if (objectWithDefaultValues is Component component)
+                    DestroyImmediate(component.gameObject);
+                DestroyImmediate(objectWithDefaultValues);
+                objectWithDefaultValues = null;
             }
         }
 
@@ -159,8 +171,9 @@ namespace NaughtyAttributes.Editor
         protected void DrawNonSerializedStructOrField(object target, FieldInfo field)
         {
             // Set defaults for non-serialized component fields
-            if (!Application.isPlaying && componentWithDefaultValues && !field.IsLiteral && target.GetType().IsSubclassOf(typeof(Component)))
-                field.SetValue(target, field.GetValue(componentWithDefaultValues));
+            if (!Application.isPlaying && objectWithDefaultValues && !field.IsLiteral &&
+                (target.GetType().IsSubclassOf(typeof(MonoBehaviour)) || target.GetType().IsSubclassOf(typeof(ScriptableObject))))
+                field.SetValue(target, field.GetValue(objectWithDefaultValues));
 
             if (field.FieldType.IsValueType && !field.FieldType.IsPrimitive && !field.FieldType.IsEnum && field.FieldType != typeof(LayerMask))
             {
@@ -319,7 +332,7 @@ namespace NaughtyAttributes.Editor
             return properties
                 .Where(f => PropertyUtility.GetAttribute<FoldoutAttribute>(f) != null)
                 .GroupBy(f => PropertyUtility.GetAttribute<FoldoutAttribute>(f).Name);
-        }  
+        }
 
         private static GUIStyle GetHeaderGUIStyle()
         {
