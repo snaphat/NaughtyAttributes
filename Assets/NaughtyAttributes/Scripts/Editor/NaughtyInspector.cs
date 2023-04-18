@@ -11,11 +11,15 @@ namespace NaughtyAttributes.Editor
     public class NaughtyInspector : UnityEditor.Editor
     {
         private List<SerializedProperty> _serializedProperties = new List<SerializedProperty>();
-        private IEnumerable<FieldInfo> _nonSerializedFields;
-        private IEnumerable<PropertyInfo> _nativeProperties;
+        private List<FieldInfo> _nonSerializedFields;
+        private List<PropertyInfo> _nativeProperties;
         private IEnumerable<MethodInfo> _methods;
         private Dictionary<string, SavedBool> _foldouts = new Dictionary<string, SavedBool>();
         Object objectWithDefaultValues; // Object to pull non-serialized default values from.
+
+        private List<string> _serializedProperyNames;
+        private List<string> _nonSerializedFieldNames;
+        private List<string> _nativePropertyNames;
 
         protected virtual void OnEnable()
         {
@@ -35,13 +39,17 @@ namespace NaughtyAttributes.Editor
             }
 
             _nonSerializedFields = ReflectionUtility.GetAllFields(
-                target, f => f.GetCustomAttributes(typeof(ShowNonSerializedFieldAttribute), true).Length > 0);
+                target, f => f.GetCustomAttributes(typeof(ShowNonSerializedFieldAttribute), true).Length > 0).ToList();
 
             _nativeProperties = ReflectionUtility.GetAllProperties(
-                target, p => p.GetCustomAttributes(typeof(ShowNativePropertyAttribute), true).Length > 0);
+                target, p => p.GetCustomAttributes(typeof(ShowNativePropertyAttribute), true).Length > 0).ToList();
 
             _methods = ReflectionUtility.GetAllMethods(
                 target, m => m.GetCustomAttributes(typeof(ButtonAttribute), true).Length > 0);
+
+            _serializedProperyNames = null;
+            _nonSerializedFieldNames = null;
+            _nativePropertyNames = null;
         }
 
         protected virtual void OnDisable()
@@ -61,7 +69,11 @@ namespace NaughtyAttributes.Editor
         {
             GetSerializedProperties(ref _serializedProperties);
 
-            bool anyNaughtyAttribute = _serializedProperties.Any(p => PropertyUtility.GetAttribute<INaughtyAttribute>(p) != null);
+            _serializedProperyNames ??= _serializedProperties.ConvertAll(x => ObjectNames.NicifyVariableName(x.name));
+            _nonSerializedFieldNames ??= _nonSerializedFields.ConvertAll(x => ObjectNames.NicifyVariableName(x.Name));
+            _nativePropertyNames ??= _nativeProperties.ConvertAll(x => ObjectNames.NicifyVariableName(x?.GetMethod.GetBackingFieldName()));
+
+            bool anyNaughtyAttribute = _serializedProperties.Any(p => PropertyUtility.GetAttribute<INaughtyAttribute>(p) != null) || _nativeProperties.Count() != 0;
             if (!anyNaughtyAttribute)
             {
                 DrawDefaultInspector();
@@ -101,6 +113,13 @@ namespace NaughtyAttributes.Editor
             }
         }
 
+        protected int FindMatchingMember(List<string> members, string member)
+        {
+            var niceName = ObjectNames.NicifyVariableName(member);
+            var index = members.FindIndex(0, x => x == niceName);
+            return members.FindIndex(0, x => x == niceName);
+        }
+
         protected void DrawSerializedProperties()
         {
             serializedObject.Update();
@@ -117,7 +136,11 @@ namespace NaughtyAttributes.Editor
                 }
                 else
                 {
-                    NaughtyEditorGUI.PropertyField_Layout(property, includeChildren: true);
+                    int index = FindMatchingMember(_nativePropertyNames, property.name);
+                    if (Application.isPlaying && index != -1) // display matching native property if in play mode instead of field
+                        NaughtyEditorGUI.NativeProperty_Layout(serializedObject.targetObject, _nativeProperties[index], property.name);
+                    else
+                        NaughtyEditorGUI.PropertyField_Layout(property, includeChildren: true);
                 }
             }
 
@@ -133,7 +156,11 @@ namespace NaughtyAttributes.Editor
                 NaughtyEditorGUI.BeginBoxGroup_Layout(group.Key);
                 foreach (var property in visibleProperties)
                 {
-                    NaughtyEditorGUI.PropertyField_Layout(property, includeChildren: true);
+                    int index = FindMatchingMember(_nativePropertyNames, property.name);
+                    if (Application.isPlaying && index != -1) // display matching native property if in play mode instead of field
+                        NaughtyEditorGUI.NativeProperty_Layout(serializedObject.targetObject, _nativeProperties[index], property.name);
+                    else
+                        NaughtyEditorGUI.PropertyField_Layout(property, includeChildren: true);
                 }
 
                 NaughtyEditorGUI.EndBoxGroup_Layout();
@@ -157,9 +184,13 @@ namespace NaughtyAttributes.Editor
                 if (_foldouts[group.Key].Value)
                 {
                     EditorGUI.indentLevel++;
-                    foreach (var property in visibleProperties)
+                    foreach (SerializedProperty property in visibleProperties)
                     {
-                        NaughtyEditorGUI.PropertyField_Layout(property, true);
+                        int index = FindMatchingMember(_nativePropertyNames, property.name);
+                        if (Application.isPlaying && index != -1) // display matching native property if in play mode instead of field
+                            NaughtyEditorGUI.NativeProperty_Layout(serializedObject.targetObject, _nativeProperties[index], property.name);
+                        else
+                            NaughtyEditorGUI.PropertyField_Layout(property, includeChildren: true);
                     }
                     EditorGUI.indentLevel--;
                 }
@@ -202,7 +233,13 @@ namespace NaughtyAttributes.Editor
                 }
             }
             else if (target is Object targetObject)
-                NaughtyEditorGUI.NonSerializedField_Layout(targetObject, field);
+            {
+                int index = FindMatchingMember(_nativePropertyNames, field.Name);
+                if (Application.isPlaying && index != -1) // display matching native property if in play mode instead of field
+                    NaughtyEditorGUI.NativeProperty_Layout(serializedObject.targetObject, _nativeProperties[index], field.Name);
+                else
+                    NaughtyEditorGUI.NonSerializedField_Layout(targetObject, field);
+            }
             else
                 NaughtyEditorGUI.NonSerializedField_Layout(target, field);
         }
@@ -272,6 +309,9 @@ namespace NaughtyAttributes.Editor
 
                 foreach (var property in _nativeProperties)
                 {
+                    // Don't display native properties that match existing serialized or non serialized fields - these are displayed inline
+                    if (FindMatchingMember(_serializedProperyNames, property.Name) != -1 || FindMatchingMember(_nonSerializedFieldNames, property.Name) != -1)
+                        continue;
                     NaughtyEditorGUI.NativeProperty_Layout(serializedObject.targetObject, property);
                 }
             }
