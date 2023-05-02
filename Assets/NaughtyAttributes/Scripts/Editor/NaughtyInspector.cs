@@ -15,7 +15,8 @@ namespace NaughtyAttributes.Editor
         private List<PropertyInfo> _nativeProperties;
         private IEnumerable<MethodInfo> _methods;
         private Dictionary<string, SavedBool> _foldouts = new Dictionary<string, SavedBool>();
-        Object objectWithDefaultValues; // Object to pull non-serialized default values from.
+        private Object objectWithDefaultValues; // Object to pull non-serialized default values from.
+        private Component componentWithDefaultValues; // Component to pull non-serialized default values from.
 
         private List<string> _serializedProperyNames;
         private List<string> _nonSerializedFieldNames;
@@ -27,9 +28,51 @@ namespace NaughtyAttributes.Editor
             {
                 if (target.GetType().IsSubclassOf(typeof(MonoBehaviour)))
                 {
+                    static LinkedList<System.Type> CollectRequiredComponents(System.Type type, LinkedList<System.Type> collectedList = null)
+                    {
+                        // Create list if one doesn't exist
+                        collectedList ??= new();
+
+                        // Ignore null types
+                        if (type == null)
+                            return collectedList;
+
+                        // Remove and add existing components to back of list
+                        if (collectedList.Contains(type))
+                        {
+                            _ = collectedList.Remove(type);
+                            _ = collectedList.AddFirst(type);
+                            return collectedList;
+                        }
+
+                        // Add new components to back of list
+                        _ = collectedList.AddFirst(type);
+
+                        // Before adding component, add required compoments of this component type
+                        foreach (var requiredComponentAttribute in (RequireComponent[])type.GetCustomAttributes(typeof(RequireComponent), true))
+                        {
+                            // Check for required components of children
+                            _ = CollectRequiredComponents(requiredComponentAttribute.m_Type0, collectedList);
+                            _ = CollectRequiredComponents(requiredComponentAttribute.m_Type1, collectedList);
+                            _ = CollectRequiredComponents(requiredComponentAttribute.m_Type2, collectedList);
+                        }
+
+                        return collectedList;
+                    }
+
                     // Create a temporary game object and component to pull non-serialized default values from.
                     var temporaryGameObject = new GameObject() { hideFlags = HideFlags.HideAndDontSave };
-                    objectWithDefaultValues = temporaryGameObject.AddComponent(target.GetType());
+                    objectWithDefaultValues = temporaryGameObject;
+
+                    // Add required components for this component type
+                    foreach (var componentType in CollectRequiredComponents(target.GetType()))
+                    {
+                        if ((target as Component)?.gameObject.GetComponent(componentType) is Component component && temporaryGameObject.GetComponent(component.GetType()) == null)
+                            _ = temporaryGameObject.AddComponent(component.GetType());
+                    }
+
+                    // Get inspected component type
+                    componentWithDefaultValues = temporaryGameObject.GetComponent(target.GetType());
                 }
                 else if (target.GetType().IsSubclassOf(typeof(ScriptableObject)))
                 {
@@ -55,13 +98,7 @@ namespace NaughtyAttributes.Editor
         protected virtual void OnDisable()
         {
             // Destroy temporary game object with non-serialized default values on disable
-            if (objectWithDefaultValues != null)
-            {
-                if (objectWithDefaultValues is Component component)
-                    DestroyImmediate(component.gameObject);
-                DestroyImmediate(objectWithDefaultValues);
-                objectWithDefaultValues = null;
-            }
+            if (objectWithDefaultValues != null) DestroyImmediate(objectWithDefaultValues);
             ReorderableListPropertyDrawer.Instance.ClearCache();
         }
 
@@ -88,13 +125,7 @@ namespace NaughtyAttributes.Editor
             DrawButtons();
 
             // Destroy temporary game object with non-serialized default values after first update of inspector gui
-            if (objectWithDefaultValues != null)
-            {
-                if (objectWithDefaultValues is Component component)
-                    DestroyImmediate(component.gameObject);
-                DestroyImmediate(objectWithDefaultValues);
-                objectWithDefaultValues = null;
-            }
+            if (objectWithDefaultValues != null) DestroyImmediate(objectWithDefaultValues);
         }
 
         protected void GetSerializedProperties(ref List<SerializedProperty> outSerializedProperties)
@@ -202,9 +233,13 @@ namespace NaughtyAttributes.Editor
         protected void DrawNonSerializedStructOrField(object target, FieldInfo field)
         {
             // Set defaults for non-serialized component fields
-            if (!Application.isPlaying && objectWithDefaultValues && !field.IsLiteral &&
-                (target.GetType().IsSubclassOf(typeof(MonoBehaviour)) || target.GetType().IsSubclassOf(typeof(ScriptableObject))))
-                field.SetValue(target, field.GetValue(objectWithDefaultValues));
+            if (!Application.isPlaying && objectWithDefaultValues && !field.IsLiteral)
+            {
+                if (target.GetType().IsSubclassOf(typeof(MonoBehaviour)) && componentWithDefaultValues)
+                    field.SetValue(target, field.GetValue(componentWithDefaultValues));
+                else if (target.GetType().IsSubclassOf(typeof(ScriptableObject)))
+                    field.SetValue(target, field.GetValue(objectWithDefaultValues));
+            }
 
             if (field.FieldType.IsValueType && !field.FieldType.IsPrimitive && !field.FieldType.IsEnum && field.FieldType != typeof(LayerMask))
             {
@@ -220,7 +255,9 @@ namespace NaughtyAttributes.Editor
                     foreach (var subfield in field.FieldType.GetFields())
                     {
                         if (subfield.FieldType.IsValueType && !subfield.FieldType.IsPrimitive && !subfield.FieldType.IsEnum && subfield.FieldType != typeof(LayerMask))
+                        {
                             DrawNonSerializedStructOrField(subtarget, subfield);
+                        }
                         else
                         {
                             EditorGUI.BeginChangeCheck();
@@ -241,7 +278,9 @@ namespace NaughtyAttributes.Editor
                     NaughtyEditorGUI.NonSerializedField_Layout(targetObject, field);
             }
             else
+            {
                 NaughtyEditorGUI.NonSerializedField_Layout(target, field);
+            }
         }
 
         protected void DrawNonSerializedFields(bool drawHeader = false)
