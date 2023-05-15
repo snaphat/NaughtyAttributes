@@ -28,48 +28,14 @@ namespace NaughtyAttributes.Editor
             {
                 if (target.GetType().IsSubclassOf(typeof(MonoBehaviour)))
                 {
-                    static LinkedList<System.Type> CollectRequiredComponents(System.Type type, LinkedList<System.Type> collectedList = null)
-                    {
-                        // Create list if one doesn't exist
-                        collectedList ??= new();
+                    // Create a temporary game object to pull non-serialized default values from.
+                    var bind = target.GetType().GetField("_runSpeed", (BindingFlags)(-1));
+                    var temporaryGameObject = Instantiate(((MonoBehaviour)target).gameObject); // Instantiate() only copies serialized fields
 
-                        // Ignore null types
-                        if (type == null)
-                            return collectedList;
-
-                        // Remove and add existing components to back of list
-                        if (collectedList.Contains(type))
-                        {
-                            _ = collectedList.Remove(type);
-                            _ = collectedList.AddFirst(type);
-                            return collectedList;
-                        }
-
-                        // Add new components to back of list
-                        _ = collectedList.AddFirst(type);
-
-                        // Before adding component, add required compoments of this component type
-                        foreach (var requiredComponentAttribute in (RequireComponent[])type.GetCustomAttributes(typeof(RequireComponent), true))
-                        {
-                            // Check for required components of children
-                            _ = CollectRequiredComponents(requiredComponentAttribute.m_Type0, collectedList);
-                            _ = CollectRequiredComponents(requiredComponentAttribute.m_Type1, collectedList);
-                            _ = CollectRequiredComponents(requiredComponentAttribute.m_Type2, collectedList);
-                        }
-
-                        return collectedList;
-                    }
-
-                    // Create a temporary game object and component to pull non-serialized default values from.
-                    var temporaryGameObject = new GameObject() { hideFlags = HideFlags.HideAndDontSave };
+                    // Setup temporary object
+                    temporaryGameObject.tag = "EditorOnly";
                     objectWithDefaultValues = temporaryGameObject;
-
-                    // Add required components for this component type
-                    foreach (var componentType in CollectRequiredComponents(target.GetType()))
-                    {
-                        if ((target as Component)?.gameObject.GetComponent(componentType) is Component component && temporaryGameObject.GetComponent(component.GetType()) == null)
-                            _ = temporaryGameObject.AddComponent(component.GetType());
-                    }
+                    objectWithDefaultValues.hideFlags = HideFlags.HideAndDontSave;
 
                     // Get inspected component type
                     componentWithDefaultValues = temporaryGameObject.GetComponent(target.GetType());
