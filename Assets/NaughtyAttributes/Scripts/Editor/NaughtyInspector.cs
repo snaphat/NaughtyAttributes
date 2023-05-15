@@ -29,7 +29,6 @@ namespace NaughtyAttributes.Editor
                 if (target is MonoBehaviour monoBehaviour)
                 {
                     // Create a temporary game object to pull non-serialized default values from.
-                    var bind = target.GetType().GetField("_runSpeed", (BindingFlags)(-1));
                     var temporaryGameObject = Instantiate(monoBehaviour.gameObject); // Instantiate() only copies serialized fields
 
                     // Setup temporary object
