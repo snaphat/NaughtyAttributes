@@ -18,7 +18,7 @@ namespace NaughtyAttributes.Editor
         private Object objectWithDefaultValues; // Object to pull non-serialized default values from.
         private Component componentWithDefaultValues; // Component to pull non-serialized default values from.
 
-        private List<string> _serializedProperyNames;
+        private List<string> _serializedPropertyNames;
         private List<string> _nonSerializedFieldNames;
         private List<string> _nativePropertyNames;
 
@@ -26,11 +26,11 @@ namespace NaughtyAttributes.Editor
         {
             if (!Application.isPlaying)
             {
-                if (target.GetType().IsSubclassOf(typeof(MonoBehaviour)))
+                if (target is MonoBehaviour monoBehaviour)
                 {
                     // Create a temporary game object to pull non-serialized default values from.
                     var bind = target.GetType().GetField("_runSpeed", (BindingFlags)(-1));
-                    var temporaryGameObject = Instantiate(((MonoBehaviour)target).gameObject); // Instantiate() only copies serialized fields
+                    var temporaryGameObject = Instantiate(monoBehaviour.gameObject); // Instantiate() only copies serialized fields
 
                     // Setup temporary object
                     temporaryGameObject.tag = "EditorOnly";
@@ -40,12 +40,14 @@ namespace NaughtyAttributes.Editor
                     // Get inspected component type
                     componentWithDefaultValues = temporaryGameObject.GetComponent(target.GetType());
                 }
-                else if (target.GetType().IsSubclassOf(typeof(ScriptableObject)))
+                else if (target is ScriptableObject)
                 {
                     // Create temporary ScriptableObject
                     objectWithDefaultValues = CreateInstance(target.GetType());
                 }
             }
+
+            GetSerializedProperties(ref _serializedProperties);
 
             _nonSerializedFields = ReflectionUtility.GetAllFields(
                 target, f => f.GetCustomAttributes(typeof(ShowNonSerializedFieldAttribute), true).Length > 0).ToList();
@@ -56,7 +58,34 @@ namespace NaughtyAttributes.Editor
             _methods = ReflectionUtility.GetAllMethods(
                 target, m => m.GetCustomAttributes(typeof(ButtonAttribute), true).Length > 0);
 
-            _serializedProperyNames = null;
+            // Check each serialized field for ShowNonSerializedField attributes
+            foreach (var property in _serializedProperties)
+            {
+                if (_nonSerializedFields.Find(x => x.Name == property.name) is FieldInfo field)
+                {
+                    // Try to get path
+                    string path = null;
+                    if (target is MonoBehaviour monoBehaviour)
+                        path = AssetDatabase.GetAssetPath(MonoScript.FromMonoBehaviour(monoBehaviour));
+                    else if (target is ScriptableObject scriptableObject)
+                        path = AssetDatabase.GetAssetPath(MonoScript.FromScriptableObject(scriptableObject));
+
+                    // Build warning message
+                    var message = "<color=red>Warning</color>: Ignoring <color=cyan>" + typeof(ShowNonSerializedFieldAttribute) + "</color> on serialized field <color=yellow>" + target.GetType() + "." + field.Name + "</color>";
+                    if (path != null)
+                        message += " in <a href=\"" + path + "\">" + path + "</a>!";
+                    else
+                        message += "!";
+
+                    // Print warning message
+                    Debug.Log(message);
+
+                    // Remove field from non-serialized field list
+                    _nonSerializedFields.Remove(field);
+                }
+            }
+
+            _serializedPropertyNames = null;
             _nonSerializedFieldNames = null;
             _nativePropertyNames = null;
         }
@@ -70,9 +99,7 @@ namespace NaughtyAttributes.Editor
 
         public override void OnInspectorGUI()
         {
-            GetSerializedProperties(ref _serializedProperties);
-
-            _serializedProperyNames ??= _serializedProperties.ConvertAll(x => ObjectNames.NicifyVariableName(x.name));
+            _serializedPropertyNames ??= _serializedProperties.ConvertAll(x => ObjectNames.NicifyVariableName(x.name));
             _nonSerializedFieldNames ??= _nonSerializedFields.ConvertAll(x => ObjectNames.NicifyVariableName(x.Name));
             _nativePropertyNames ??= _nativeProperties.ConvertAll(x => ObjectNames.NicifyVariableName(x?.GetMethod.GetBackingFieldName()));
 
@@ -261,6 +288,7 @@ namespace NaughtyAttributes.Editor
                         EditorGUILayout.GetControlRect(false), HorizontalLineAttribute.DefaultHeight, HorizontalLineAttribute.DefaultColor.GetColor());
                 }
 
+                // Draw non-grouped serialized fields
                 foreach (var field in GetNonGroupedProperties(_nonSerializedFields))
                 {
                     DrawNonSerializedStructOrField(serializedObject.targetObject, field);
@@ -315,7 +343,7 @@ namespace NaughtyAttributes.Editor
                 foreach (var property in _nativeProperties)
                 {
                     // Don't display native properties that match existing serialized or non serialized fields - these are displayed inline
-                    if (FindMatchingMember(_serializedProperyNames, property.Name) != -1 || FindMatchingMember(_nonSerializedFieldNames, property.Name) != -1)
+                    if (FindMatchingMember(_serializedPropertyNames, property.Name) != -1 || FindMatchingMember(_nonSerializedFieldNames, property.Name) != -1)
                         continue;
                     NaughtyEditorGUI.NativeProperty_Layout(serializedObject.targetObject, property);
                 }

@@ -43,9 +43,9 @@ namespace NaughtyAttributes.Editor
         private static void PropertyField_Implementation(Rect rect, SerializedProperty property, bool includeChildren, PropertyFieldFunction propertyFieldFunction)
         {
             SpecialCaseDrawerAttribute specialCaseAttribute = PropertyUtility.GetAttribute<SpecialCaseDrawerAttribute>(property);
-            if (specialCaseAttribute != null)
+            if (specialCaseAttribute?.GetDrawer() is SpecialCasePropertyDrawerBase drawer)
             {
-                specialCaseAttribute.GetDrawer().OnGUI(rect, property);
+                drawer.OnGUI(rect, property);
             }
             else
             {
