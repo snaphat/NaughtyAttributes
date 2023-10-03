@@ -24,6 +24,9 @@ namespace NaughtyAttributes.Editor
 
         protected virtual void OnEnable()
         {
+            // Ignore null targets because they will result in SerializedObjectNotCreatableException when accessing the SerializedObject
+            if (target == null) return;
+
             // Unity Editor may execute OnEnable prior to setting isPlaying, so use isPlayingOrWillChangePlaymode instead
             if (!EditorApplication.isPlayingOrWillChangePlaymode)
             {
