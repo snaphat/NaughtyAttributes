@@ -24,7 +24,8 @@ namespace NaughtyAttributes.Editor
 
         protected virtual void OnEnable()
         {
-            if (!Application.isPlaying)
+            // Unity Editor may execute OnEnable prior to setting isPlaying, so use isPlayingOrWillChangePlaymode instead
+            if (!EditorApplication.isPlayingOrWillChangePlaymode)
             {
                 if (target is MonoBehaviour monoBehaviour)
                 {
@@ -160,7 +161,7 @@ namespace NaughtyAttributes.Editor
                 else
                 {
                     int index = FindMatchingMember(_nativePropertyNames, property.name);
-                    if (Application.isPlaying && index != -1) // display matching native property if in play mode instead of field
+                    if (EditorApplication.isPlayingOrWillChangePlaymode && index != -1) // display matching native property if in play mode instead of field
                         NaughtyEditorGUI.NativeProperty_Layout(serializedObject.targetObject, _nativeProperties[index], property.name);
                     else
                         NaughtyEditorGUI.PropertyField_Layout(property, includeChildren: true);
@@ -180,7 +181,7 @@ namespace NaughtyAttributes.Editor
                 foreach (var property in visibleProperties)
                 {
                     int index = FindMatchingMember(_nativePropertyNames, property.name);
-                    if (Application.isPlaying && index != -1) // display matching native property if in play mode instead of field
+                    if (EditorApplication.isPlayingOrWillChangePlaymode && index != -1) // display matching native property if in play mode instead of field
                         NaughtyEditorGUI.NativeProperty_Layout(serializedObject.targetObject, _nativeProperties[index], property.name);
                     else
                         NaughtyEditorGUI.PropertyField_Layout(property, includeChildren: true);
@@ -210,7 +211,7 @@ namespace NaughtyAttributes.Editor
                     foreach (SerializedProperty property in visibleProperties)
                     {
                         int index = FindMatchingMember(_nativePropertyNames, property.name);
-                        if (Application.isPlaying && index != -1) // display matching native property if in play mode instead of field
+                        if (EditorApplication.isPlayingOrWillChangePlaymode && index != -1) // display matching native property if in play mode instead of field
                             NaughtyEditorGUI.NativeProperty_Layout(serializedObject.targetObject, _nativeProperties[index], property.name);
                         else
                             NaughtyEditorGUI.PropertyField_Layout(property, includeChildren: true);
@@ -225,7 +226,7 @@ namespace NaughtyAttributes.Editor
         protected void DrawNonSerializedStructOrField(object target, FieldInfo field)
         {
             // Set defaults for non-serialized component fields
-            if (!Application.isPlaying && objectWithDefaultValues && !field.IsLiteral)
+            if (!EditorApplication.isPlayingOrWillChangePlaymode && objectWithDefaultValues && !field.IsLiteral)
             {
                 if (target.GetType().IsSubclassOf(typeof(MonoBehaviour)) && componentWithDefaultValues)
                     field.SetValue(target, field.GetValue(componentWithDefaultValues));
@@ -264,7 +265,7 @@ namespace NaughtyAttributes.Editor
             else if (target is Object targetObject)
             {
                 int index = FindMatchingMember(_nativePropertyNames, field.Name);
-                if (Application.isPlaying && index != -1) // display matching native property if in play mode instead of field
+                if (EditorApplication.isPlayingOrWillChangePlaymode && index != -1) // display matching native property if in play mode instead of field
                     NaughtyEditorGUI.NativeProperty_Layout(serializedObject.targetObject, _nativeProperties[index], field.Name);
                 else
                     NaughtyEditorGUI.NonSerializedField_Layout(targetObject, field);
