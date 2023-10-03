@@ -35,6 +35,9 @@ namespace NaughtyAttributes.Editor
                     // Create a temporary game object to pull non-serialized default values from.
                     var temporaryGameObject = Instantiate(monoBehaviour.gameObject); // Instantiate() only copies serialized fields
 
+                    // Disable Duplicated object so that components with ExecuteInEditMode do not run.
+                    temporaryGameObject.SetActive(false);
+
                     // Setup temporary object
                     temporaryGameObject.tag = "EditorOnly";
                     objectWithDefaultValues = temporaryGameObject;
