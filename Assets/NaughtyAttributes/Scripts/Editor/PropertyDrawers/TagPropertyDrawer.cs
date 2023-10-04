@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -21,10 +22,10 @@ namespace NaughtyAttributes.Editor
             if (property.propertyType == SerializedPropertyType.String)
             {
                 // generate the taglist + custom tags
-                List<string> tagList = new List<string>();
-                tagList.Add("(None)");
-                tagList.Add("Untagged");
-                tagList.AddRange(UnityEditorInternal.InternalEditorUtility.tags);
+                List<GUIContent> tagList = new List<GUIContent>();
+                tagList.Add(new GUIContent("(None)"));
+                tagList.Add(new GUIContent("Untagged"));
+                tagList.AddRange(UnityEditorInternal.InternalEditorUtility.tags.Select(x => new GUIContent(x)));
 
                 string propertyString = property.stringValue;
                 int index = 0;
@@ -32,7 +33,7 @@ namespace NaughtyAttributes.Editor
                 // we skip index 0 as that is a special custom case
                 for (int i = 1; i < tagList.Count; i++)
                 {
-                    if (tagList[i].Equals(propertyString, System.StringComparison.Ordinal))
+                    if (tagList[i].text.Equals(propertyString, System.StringComparison.Ordinal))
                     {
                         index = i;
                         break;
@@ -40,10 +41,10 @@ namespace NaughtyAttributes.Editor
                 }
 
                 // Draw the popup box with the current selected index
-                int newIndex = EditorGUI.Popup(rect, label.text, index, tagList.ToArray());
+                int newIndex = EditorGUI.Popup(rect, label, index, tagList.ToArray());
 
                 // Adjust the actual string value of the property based on the selection
-                string newValue = newIndex > 0 ? tagList[newIndex] : string.Empty;
+                string newValue = newIndex > 0 ? tagList[newIndex].text : string.Empty;
 
                 if (!property.stringValue.Equals(newValue, System.StringComparison.Ordinal))
                 {
