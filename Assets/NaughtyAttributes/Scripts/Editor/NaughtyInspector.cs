@@ -10,11 +10,11 @@ namespace NaughtyAttributes.Editor
     [CustomEditor(typeof(UnityEngine.Object), true)]
     public class NaughtyInspector : UnityEditor.Editor
     {
-        private List<SerializedProperty> _serializedProperties = new List<SerializedProperty>();
-        private List<FieldInfo> _nonSerializedFields;
-        private List<PropertyInfo> _nativeProperties;
+        private List<SerializedProperty> _serializedProperties = new();
+        private List<FieldInfo> _nonSerializedFields = new();
+        private List<PropertyInfo> _nativeProperties = new();
         private IEnumerable<MethodInfo> _methods;
-        private Dictionary<string, SavedBool> _foldouts = new Dictionary<string, SavedBool>();
+        private Dictionary<string, SavedBool> _foldouts = new();
         private Object objectWithDefaultValues; // Object to pull non-serialized default values from.
         private Component componentWithDefaultValues; // Component to pull non-serialized default values from.
 
@@ -358,7 +358,7 @@ namespace NaughtyAttributes.Editor
 
         protected void DrawButtons(bool drawHeader = false)
         {
-            if (_methods.Any())
+            if (_methods != null && _methods.Any())
             {
                 if (drawHeader)
                 {
