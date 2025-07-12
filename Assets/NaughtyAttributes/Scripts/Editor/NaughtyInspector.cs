@@ -49,7 +49,17 @@ namespace NaughtyAttributes.Editor
                 if (target is MonoBehaviour monoBehaviour)
                 {
                     // Create a temporary game object to pull non-serialized default values from.
-                    var temporaryGameObject = Instantiate(monoBehaviour.gameObject); // Instantiate() only copies serialized fields
+                    var originalLogEnabled = Debug.unityLogger.logEnabled;
+                    GameObject temporaryGameObject;
+                    try
+                    {
+                        Debug.unityLogger.logEnabled = false;
+                        temporaryGameObject = Instantiate(monoBehaviour.gameObject); // Instantiate() only copies serialized fields
+                    }
+                    finally
+                    {
+                        Debug.unityLogger.logEnabled = originalLogEnabled;
+                    }
 
                     // Disable Duplicated object so that components with ExecuteInEditMode do not run.
                     temporaryGameObject.SetActive(false);
