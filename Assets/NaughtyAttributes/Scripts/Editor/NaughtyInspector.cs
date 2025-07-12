@@ -55,22 +55,23 @@ namespace NaughtyAttributes.Editor
                     {
                         Debug.unityLogger.logEnabled = false;
                         temporaryGameObject = Instantiate(monoBehaviour.gameObject); // Instantiate() only copies serialized fields
+
+                        // Disable Duplicated object so that components with ExecuteInEditMode do not run.
+                        temporaryGameObject.SetActive(false);
+
+                        // Setup temporary object
+                        temporaryGameObject.tag = "EditorOnly";
+                        objectWithDefaultValues = temporaryGameObject;
+                        objectWithDefaultValues.hideFlags = HideFlags.HideAndDontSave;
+
+                        // Get inspected component type
+                        componentWithDefaultValues = temporaryGameObject.GetComponent(target.GetType());
                     }
                     finally
                     {
                         Debug.unityLogger.logEnabled = originalLogEnabled;
                     }
 
-                    // Disable Duplicated object so that components with ExecuteInEditMode do not run.
-                    temporaryGameObject.SetActive(false);
-
-                    // Setup temporary object
-                    temporaryGameObject.tag = "EditorOnly";
-                    objectWithDefaultValues = temporaryGameObject;
-                    objectWithDefaultValues.hideFlags = HideFlags.HideAndDontSave;
-
-                    // Get inspected component type
-                    componentWithDefaultValues = temporaryGameObject.GetComponent(target.GetType());
                 }
                 else if (target is ScriptableObject)
                 {
